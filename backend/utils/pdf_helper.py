@@ -1,16 +1,21 @@
 # backend/utils/pdf_helper.py
 import os
-import pdfkit
+import asyncio
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from playwright.async_api import async_playwright
 
-# --- Jinja Setup ---
+# ------------------------
+# Jinja Setup
+# ------------------------
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
 env = Environment(
     loader=FileSystemLoader(TEMPLATE_DIR),
     autoescape=select_autoescape(["html"])
 )
 
-
+# ------------------------
+# Normalize Data
+# ------------------------
 def normalize_data(data, template_id=1):
     personal = data.get("personal", {})
     skills = data.get("skills", [])
@@ -18,7 +23,6 @@ def normalize_data(data, template_id=1):
     projects = data.get("projects", [])
     certificates = data.get("certificates", [])
 
-    # DIFFERENT SKILL CLASS BASED ON TEMPLATE
     skill_class = (
         "skill-chip" if template_id == 1 else
         "skill-tag" if template_id == 2 else
@@ -57,59 +61,46 @@ def normalize_data(data, template_id=1):
         "certificates": cert_html,
     }
 
-
-
+# ------------------------
+# Render HTML from template
+# ------------------------
 def _render_template(template_id: int, data: dict) -> str:
     tpl = f"template{template_id}.html"
     template = env.get_template(tpl)
     return template.render(**data)
 
+# ------------------------
+# PLAYWRIGHT ASYNC PDF GENERATOR
+# ------------------------
+async def _generate_pdf_async(html: str) -> bytes:
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
+        
+        await page.set_content(html, wait_until="networkidle")
 
+        pdf_bytes = await page.pdf(
+            format="A4",
+            print_background=True,
+            margin={"top": "10mm", "bottom": "10mm"}
+        )
+
+        await browser.close()
+        return pdf_bytes
+
+# ------------------------
+# Sync wrapper for PDF
+# ------------------------
 def generate_pdf_bytes(template_id: int, data: dict) -> bytes:
-    """
-    Synchronous generation using wkhtmltopdf via pdfkit.
-    This function is sync on purpose — the route will call it in a thread executor.
-    """
     clean_data = normalize_data(data, template_id=template_id)
     html = _render_template(template_id, clean_data)
 
-    # Prefer env var WKHTMLTOPDF_PATH (easier to change); fallback to common Windows path
-    wkhtml_path = os.getenv("WKHTMLTOPDF_PATH",
-                            r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
-    if not os.path.exists(wkhtml_path):
-        # Raise a clear error so the caller can log it
-        raise RuntimeError(f"wkhtmltopdf not found at: {wkhtml_path}. "
-                           "Set WKHTMLTOPDF_PATH environment variable to the correct path.")
+    return asyncio.run(_generate_pdf_async(html))
 
-    config = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
-
-    options = {
-        "page-size": "A4",
-        "encoding": "UTF-8",
-        # enable local file access for css/images if templates reference local files
-        "enable-local-file-access": None,
-        "disable-smart-shrinking": None,
-        "quiet": None,
-    }
-
-    # pdfkit.from_string returns bytes when output_path=False
-    pdf_bytes = pdfkit.from_string(
-        html,
-        output_path=False,
-        configuration=config,
-        options=options
-    )
-
-    if not isinstance(pdf_bytes, (bytes, bytearray)):
-        raise RuntimeError("pdfkit did not return bytes")
-
-    return pdf_bytes
-
+# ------------------------
+# HTML PREVIEW FUNCTION
+# ------------------------
 def generate_html_preview(template_id: int, data: dict) -> str:
-    """
-    Returns rendered HTML (not PDF) for preview.
-    """
     clean_data = normalize_data(data, template_id=template_id)
     html = _render_template(template_id, clean_data)
     return html
-
