@@ -77,16 +77,11 @@ def generate_pdf_bytes(template_id: int, data: dict) -> bytes:
     clean_data = normalize_data(data, template_id)
     html = _render_template(template_id, clean_data)
 
-    # Linux path for wkhtmltopdf on Render
-    # Detect wkhtmltopdf depending on environment
-    if os.name == "nt":
-        # Windows
-        wkhtml_path = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
-    else:
-        # Linux (Render)
-        wkhtml_path = "/usr/bin/wkhtmltopdf"
+    # Path to bundled wkhtmltopdf inside project
+    wkhtml_path = os.path.join(os.path.dirname(__file__), "..", "bin", "wkhtmltopdf")
+    wkhtml_path = os.path.abspath(wkhtml_path)
 
-    # If not found, raise clear error
+    # Check if exists
     if not os.path.exists(wkhtml_path):
         raise RuntimeError(f"wkhtmltopdf not found at: {wkhtml_path}")
 
@@ -101,7 +96,12 @@ def generate_pdf_bytes(template_id: int, data: dict) -> bytes:
         "quiet": None,
     }
 
-    pdf_bytes = pdfkit.from_string(html, output_path=False, configuration=config, options=options)
+    pdf_bytes = pdfkit.from_string(
+        html, 
+        output_path=False, 
+        configuration=config, 
+        options=options
+    )
     return pdf_bytes
 
 # ------------------------
