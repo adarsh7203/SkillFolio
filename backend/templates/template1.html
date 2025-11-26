@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Resume Template 1</title>
+
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        margin: 40px;
+        color: #222;
+        line-height: 1.6;
+    }
+
+    h1 {
+        font-size: 34px;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    h2 {
+        margin-top: 28px;
+        border-bottom: 2px solid #333;
+        padding-bottom: 4px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .header-info {
+        margin-bottom: 25px;
+        color: #555;
+        font-size: 15px;
+    }
+
+    ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    li {
+        margin-bottom: 6px;
+    }
+
+    .skill-chip {
+        display: inline-block;
+        background: #efefef;
+        padding: 5px 10px;
+        border-radius: 6px;
+        margin: 4px 6px 0 0;
+        font-size: 14px;
+    }
+</style>
+
+</head>
+
+<body>
+
+    <!-- Full Name -->
+    <h1>{{ name }}</h1>
+
+    <!-- Contact Info -->
+    <div class="header-info">
+        <div><strong>Email:</strong> {{ email }}</div>
+        <div><strong>Phone:</strong> {{ phone }}</div>
+        <div><strong>Location:</strong> {{ location }}</div>
+    </div>
+
+    <!-- Summary Section -->
+    <h2>Professional Summary</h2>
+    <p>{{ summary }}</p>
+
+    <!-- Skills Section -->
+    <h2>Skills</h2>
+    <div>
+        {{ skills | safe }}
+    </div>
+
+    <!-- Education Section -->
+    <h2>Education</h2>
+    <ul>
+        {{ education | safe }}
+    </ul>
+
+    <!-- Projects Section -->
+    <h2>Projects</h2>
+    <ul>
+        {{ projects | safe }}
+    </ul>
+
+    <!-- Certificates Section -->
+    <h2>Certificates</h2>
+    <ul>
+        {{ certificates | safe }}
+    </ul>
+
+</body>
+</html>

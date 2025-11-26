@@ -1,0 +1,63 @@
+# ===========================
+# PYTHON BACKEND IGNORE
+# ===========================
+
+# Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+backend/venv/
+venv/
+env/
+
+# Environment variables
+.env
+backend/.env
+
+# FastAPI temp/cache/log
+.pytest_cache/
+*.log
+*.sqlite3
+
+# Build/Dist
+dist/
+build/
+
+# ===========================
+# FRONTEND IGNORE
+# ===========================
+
+# Node modules
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+frontend/.vite/
+frontend/.vite-cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment (if any)
+frontend/.env
+frontend/.env.local
+
+# ===========================
+# OS & EDITOR FILES
+# ===========================
+
+.DS_Store
+Thumbs.db
+
+# VSCode / IDE configs
+.vscode/
+.idea/
+
+# Others
+*.swp
+*.swo
