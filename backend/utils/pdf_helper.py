@@ -78,8 +78,7 @@ def generate_pdf_bytes(template_id: int, data: dict) -> bytes:
     html = _render_template(template_id, clean_data)
 
     # Path to bundled wkhtmltopdf inside project
-    wkhtml_path = os.path.join(os.path.dirname(__file__), "..", "bin", "wkhtmltopdf")
-    wkhtml_path = os.path.abspath(wkhtml_path)
+    wkhtml_path = "/usr/bin/wkhtmltopdf"
 
     # Check if exists
     if not os.path.exists(wkhtml_path):
