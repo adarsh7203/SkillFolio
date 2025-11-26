@@ -1,8 +1,7 @@
 # backend/utils/pdf_helper.py
 import os
-import asyncio
+import pdfkit
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from playwright.async_api import async_playwright
 
 # ------------------------
 # Jinja Setup
@@ -61,6 +60,7 @@ def normalize_data(data, template_id=1):
         "certificates": cert_html,
     }
 
+
 # ------------------------
 # Render HTML from template
 # ------------------------
@@ -69,33 +69,40 @@ def _render_template(template_id: int, data: dict) -> str:
     template = env.get_template(tpl)
     return template.render(**data)
 
+
 # ------------------------
 # PLAYWRIGHT ASYNC PDF GENERATOR
 # ------------------------
-async def _generate_pdf_async(html: str) -> bytes:
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        page = await browser.new_page()
-        
-        await page.set_content(html, wait_until="networkidle")
-
-        pdf_bytes = await page.pdf(
-            format="A4",
-            print_background=True,
-            margin={"top": "10mm", "bottom": "10mm"}
-        )
-
-        await browser.close()
-        return pdf_bytes
-
-# ------------------------
-# Sync wrapper for PDF
-# ------------------------
 def generate_pdf_bytes(template_id: int, data: dict) -> bytes:
-    clean_data = normalize_data(data, template_id=template_id)
+    clean_data = normalize_data(data, template_id)
     html = _render_template(template_id, clean_data)
 
-    return asyncio.run(_generate_pdf_async(html))
+    # Linux path for wkhtmltopdf on Render
+    # Detect wkhtmltopdf depending on environment
+    if os.name == "nt":
+        # Windows
+        wkhtml_path = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+    else:
+        # Linux (Render)
+        wkhtml_path = "/usr/bin/wkhtmltopdf"
+
+    # If not found, raise clear error
+    if not os.path.exists(wkhtml_path):
+        raise RuntimeError(f"wkhtmltopdf not found at: {wkhtml_path}")
+
+
+    config = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
+
+    options = {
+        "page-size": "A4",
+        "encoding": "UTF-8",
+        "enable-local-file-access": None,
+        "disable-smart-shrinking": None,
+        "quiet": None,
+    }
+
+    pdf_bytes = pdfkit.from_string(html, output_path=False, configuration=config, options=options)
+    return pdf_bytes
 
 # ------------------------
 # HTML PREVIEW FUNCTION
