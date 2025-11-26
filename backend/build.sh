@@ -1,9 +1,8 @@
 #!/bin/bash
 set -e
 
-apt-get update
-apt-get install -y xfonts-75dpi xfonts-base
-
-chmod +x bin/wkhtmltopdf
-
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Make wkhtmltopdf binary executable
+chmod +x bin/wkhtmltopdf
