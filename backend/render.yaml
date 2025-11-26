@@ -4,12 +4,12 @@ services:
     env: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
-    nixpacks:
-      packages:
+    nixpacksPlan:
+      aptPackages:
         - wkhtmltopdf
         - fontconfig
-        - freetype
-        - libjpeg
-        - xorg.fonts
-        - xorg.libXrender
-        - xorg.libXext
+        - libxrender1
+        - libxext6
+        - xfonts-75dpi
+        - xfonts-base
+        - libjpeg62
