@@ -43,36 +43,6 @@ Jinja template engine
 
 PDF generation with pdfkit
 
-🗂️ Project Structure
-SkillFolio/
-│
-├── backend/
-│   ├── main.py
-│   ├── routes/
-│   │   ├── pdf_routes.py
-│   │   └── ai_routes.py
-│   ├── utils/
-│   │   └── pdf_helper.py
-│   │   └── ai_helper.py
-│   ├── templates/
-│   │   ├── template1.html
-│   │   ├── template2.html
-│   │   └── template3.html
-│   ├── requirements.txt
-│   ├── render.yaml
-│   └── bin/
-│       └── wkhtmltopdf   (Linux binary for Render deployment)
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── services/api.js
-│   │   └── App.jsx
-│   ├── package.json
-│   └── vite.config.js
-│
-└── README.md
-
 🛠️ Tech Stack
 Frontend
 
