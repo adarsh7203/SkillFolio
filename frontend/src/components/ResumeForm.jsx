@@ -1,4 +1,3 @@
-// frontend/src/components/ResumeForm.jsx
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Sparkles, Plus } from "lucide-react";
@@ -6,64 +5,72 @@ import { Header } from "./Header";
 import { improveSummary, suggestSkills, improveProject } from "../services/ai";
 
 export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
-  const [skillInput, setSkillInput] = useState("");
-  const [showAISuggestion, setShowAISuggestion] = useState(null);
-  const [progress, setProgress] = useState(25);
 
-  // ----------------------------------------------
-  // AI IMPROVEMENT HANDLER
-  // ----------------------------------------------
+  // INPUT STATES
+  const [skillInput, setSkillInput] = useState("");
+
+  // AI SUGGESTION STATES
+  const [summarySuggestion, setSummarySuggestion] = useState("");
+  const [skillsSuggestion, setSkillsSuggestion] = useState("");
+  const [projectSuggestions, setProjectSuggestions] = useState({}); // {0: "text", 1:"text"}
+
+  const [progress, setProgress] = useState(25);
+  const [loadingField, setLoadingField] = useState(null); // which field is loading AI
+
+  // ----------------------------------------------------------
+  // AI Handler (NO AUTOFILL — ONLY SHOW SUGGESTION)
+  // ----------------------------------------------------------
   const handleAIImprovement = async (field, index = null) => {
-    setShowAISuggestion("loading");
+    setLoadingField(field);
 
     try {
-      let result = "";
-
       if (field === "summary") {
-        result = await improveSummary(resumeData.summary || "");
-        setResumeData({ ...resumeData, summary: result });
-      } else if (field === "skills") {
-        result = await suggestSkills(resumeData.skills || []);
-        // result may be array or comma string depending on backend — normalize
-        const newSkills =
-          Array.isArray(result) ? result : (result || "").toString().split(",").map(s => s.trim()).filter(Boolean);
-        setResumeData({ ...resumeData, skills: [...(resumeData.skills || []), ...newSkills] });
-      } else if (field.startsWith("project-")) {
-        const idx = parseInt(field.split("-")[1], 10);
-        result = await improveProject(resumeData.projects?.[idx]?.description || "");
-        const updated = [...(resumeData.projects || [])];
-        updated[idx] = { ...(updated[idx] || {}), description: result };
-        setResumeData({ ...resumeData, projects: updated });
+        const res = await improveSummary(resumeData.summary || "");
+        setSummarySuggestion(res);
       }
-    } catch (err) {
-      console.error(err);
-      alert("AI request failed. Check backend / API key.");
+
+      else if (field === "skills") {
+        const list = await suggestSkills(resumeData.skills || []);
+        setSkillsSuggestion(list.join(", "));
+      }
+
+      else if (field.startsWith("project-")) {
+        const idx = Number(field.split("-")[1]);
+        const res = await improveProject(resumeData.projects[idx].description || "");
+
+        setProjectSuggestions(prev => ({
+          ...prev,
+          [idx]: res
+        }));
+      }
+    } catch (error) {
+      alert("AI Error: Please check backend or API key.");
     }
 
-    setShowAISuggestion(null);
+    setLoadingField(null);
   };
 
-  // ----------------------------------------------
-  // ADD FIELDS
-  // ----------------------------------------------
+  // ----------------------------------------------------------
+  // ADD NEW FIELDS
+  // ----------------------------------------------------------
   const addEducation = () => {
     setResumeData({
       ...resumeData,
-      education: [...(resumeData.education || []), { school: "", degree: "", year: "" }],
+      education: [...resumeData.education, { school: "", degree: "", year: "" }],
     });
   };
 
   const addProject = () => {
     setResumeData({
       ...resumeData,
-      projects: [...(resumeData.projects || []), { title: "", description: "" }],
+      projects: [...resumeData.projects, { title: "", description: "" }],
     });
   };
 
   const addCertificate = () => {
     setResumeData({
       ...resumeData,
-      certificates: [...(resumeData.certificates || []), { name: "", issuer: "", date: "" }],
+      certificates: [...resumeData.certificates, { name: "", issuer: "", date: "" }],
     });
   };
 
@@ -72,14 +79,14 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
     setTimeout(() => onNavigate("templates"), 300);
   };
 
-  // Helper to safely read nested values
-  const getPersonal = (key, fallback = "") => (resumeData?.personal?.[key] ?? fallback);
-
+  // ----------------------------------------------------------
+  // MAIN FORM JSX
+  // ----------------------------------------------------------
   return (
     <div className="min-h-screen">
       <Header onNavigate={onNavigate} currentPage="form" />
 
-      {/* Progress Bar */}
+      {/* PROGRESS BAR */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-2">
@@ -97,7 +104,7 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
         </div>
       </div>
 
-      {/* MAIN FORM */}
+      {/* MAIN CONTENT */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -105,183 +112,171 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
           transition={{ duration: 0.5 }}
           className="space-y-8"
         >
-          {/* ----------------------------------------------
-              PERSONAL INFO
-          ---------------------------------------------- */}
-          <section className="bg-white rounded-xl p-8 shadow-md">
-            <h2 className="text-2xl text-gray-900 mb-6">Personal Information</h2>
+
+          {/* ------------------------------------------------ */}
+          {/* PERSONAL INFORMATION */}
+          {/* ------------------------------------------------ */}
+          <section className="bg-white p-8 rounded-xl shadow-md">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Personal Information</h2>
+
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Full Name */}
               <div>
                 <label className="block text-sm mb-2">Full Name</label>
                 <input
                   type="text"
-                  value={getPersonal("fullName")}
+                  value={resumeData.personal.fullName}
                   onChange={(e) =>
                     setResumeData({
                       ...resumeData,
-                      personal: { ...(resumeData.personal || {}), fullName: e.target.value },
+                      personal: { ...resumeData.personal, fullName: e.target.value },
                     })
                   }
                   onFocus={() => setProgress(Math.max(progress, 25))}
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                  className="w-full px-4 py-2 border rounded-xl"
                   placeholder="John Doe"
                 />
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-sm mb-2">Email</label>
                 <input
                   type="email"
-                  value={getPersonal("email")}
+                  value={resumeData.personal.email}
                   onChange={(e) =>
                     setResumeData({
                       ...resumeData,
-                      personal: { ...(resumeData.personal || {}), email: e.target.value },
+                      personal: { ...resumeData.personal, email: e.target.value },
                     })
                   }
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                  className="w-full px-4 py-2 border rounded-xl"
                   placeholder="john@example.com"
                 />
               </div>
 
-              {/* Phone */}
               <div>
                 <label className="block text-sm mb-2">Phone</label>
                 <input
                   type="tel"
-                  value={getPersonal("phone")}
+                  value={resumeData.personal.phone}
                   onChange={(e) =>
                     setResumeData({
                       ...resumeData,
-                      personal: { ...(resumeData.personal || {}), phone: e.target.value },
+                      personal: { ...resumeData.personal, phone: e.target.value },
                     })
                   }
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                  className="w-full px-4 py-2 border rounded-xl"
                   placeholder="+1 234 567 8900"
                 />
               </div>
 
-              {/* Location */}
               <div>
                 <label className="block text-sm mb-2">Location</label>
                 <input
                   type="text"
-                  value={getPersonal("location")}
+                  value={resumeData.personal.location}
                   onChange={(e) =>
                     setResumeData({
                       ...resumeData,
-                      personal: { ...(resumeData.personal || {}), location: e.target.value },
+                      personal: { ...resumeData.personal, location: e.target.value },
                     })
                   }
-                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                  className="w-full px-4 py-2 border rounded-xl"
                   placeholder="New York, NY"
                 />
               </div>
             </div>
           </section>
 
-          {/* ----------------------------------------------
-              EDUCATION
-          ---------------------------------------------- */}
+          {/* ------------------------------------------------ */}
+          {/* EDUCATION */}
+          {/* ------------------------------------------------ */}
           <section className="bg-white p-8 rounded-xl shadow-md">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-gray-900">Education</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">Education</h2>
               <button onClick={addEducation} className="flex items-center gap-2 text-[#4F46E5]">
-                <Plus className="w-4 h-4" />
-                <span>Add More</span>
+                <Plus className="w-4 h-4" /> Add More
               </button>
             </div>
 
-            <div className="space-y-6">
-              {(resumeData.education || [{ school: "", degree: "", year: "" }]).map((edu, index) => (
-                <div key={index} className="grid md:grid-cols-3 gap-4">
-                  {/* School */}
-                  <div>
-                    <label className="text-sm block mb-2">School</label>
-                    <input
-                      type="text"
-                      value={edu.school || ""}
-                      onChange={(e) => {
-                        const list = [...(resumeData.education || [])];
-                        list[index] = { ...(list[index] || {}), school: e.target.value };
-                        setResumeData({ ...resumeData, education: list });
-                        setProgress(Math.max(progress, 50));
-                      }}
-                      className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
-                      placeholder="University Name"
-                    />
-                  </div>
-
-                  {/* Degree */}
-                  <div>
-                    <label className="text-sm block mb-2">Degree</label>
-                    <input
-                      type="text"
-                      value={edu.degree || ""}
-                      onChange={(e) => {
-                        const list = [...(resumeData.education || [])];
-                        list[index] = { ...(list[index] || {}), degree: e.target.value };
-                        setResumeData({ ...resumeData, education: list });
-                      }}
-                      className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
-                      placeholder="Bachelor of Science"
-                    />
-                  </div>
-
-                  {/* Year */}
-                  <div>
-                    <label className="text-sm block mb-2">Year</label>
-                    <input
-                      type="text"
-                      value={edu.year || ""}
-                      onChange={(e) => {
-                        const list = [...(resumeData.education || [])];
-                        list[index] = { ...(list[index] || {}), year: e.target.value };
-                        setResumeData({ ...resumeData, education: list });
-                      }}
-                      className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
-                      placeholder="2024"
-                    />
-                  </div>
+            {resumeData.education.map((edu, index) => (
+              <div key={index} className="grid md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm mb-2">School</label>
+                  <input
+                    type="text"
+                    value={edu.school}
+                    onChange={(e) => {
+                      const copy = [...resumeData.education];
+                      copy[index].school = e.target.value;
+                      setResumeData({ ...resumeData, education: copy });
+                      setProgress(Math.max(progress, 50));
+                    }}
+                    className="w-full px-4 py-2 border rounded-xl"
+                    placeholder="University Name"
+                  />
                 </div>
-              ))}
-            </div>
+
+                <div>
+                  <label className="block text-sm mb-2">Degree</label>
+                  <input
+                    type="text"
+                    value={edu.degree}
+                    onChange={(e) => {
+                      const copy = [...resumeData.education];
+                      copy[index].degree = e.target.value;
+                      setResumeData({ ...resumeData, education: copy });
+                    }}
+                    className="w-full px-4 py-2 border rounded-xl"
+                    placeholder="Bachelor of Science"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-2">Year</label>
+                  <input
+                    type="text"
+                    value={edu.year}
+                    onChange={(e) => {
+                      const copy = [...resumeData.education];
+                      copy[index].year = e.target.value;
+                      setResumeData({ ...resumeData, education: copy });
+                    }}
+                    className="w-full px-4 py-2 border rounded-xl"
+                    placeholder="2024"
+                  />
+                </div>
+              </div>
+            ))}
           </section>
 
-          {/* ----------------------------------------------
-              SKILLS + AI
-          ---------------------------------------------- */}
+          {/* ------------------------------------------------ */}
+          {/* SKILLS + AI */}
+          {/* ------------------------------------------------ */}
           <section className="bg-white p-8 rounded-xl shadow-md">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-gray-800">Skills</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900">Skills</h2>
 
               <button
                 onClick={() => handleAIImprovement("skills")}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-[#4F46E5] rounded-xl"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-xl text-[#4F46E5]"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Improve with AI</span>
+                Improve with AI
               </button>
             </div>
 
-            {/* LOADING */}
-            {showAISuggestion === "loading" && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mb-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100"
-              >
+            {/* AI SUGGESTION */}
+            {skillsSuggestion && (
+              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl mb-4">
                 <p className="text-sm text-gray-700">
-                  <span className="text-[#4F46E5]">AI Thinking...</span> Generating optimized skills.
+                  <span className="font-medium text-[#4F46E5]">AI Suggestion:</span> {skillsSuggestion}
                 </p>
-              </motion.div>
+              </div>
             )}
 
-            {/* Tags */}
+            {/* TAG INPUT */}
             <div className="border p-3 rounded-xl flex flex-wrap gap-2">
-              {(resumeData.skills || []).map((skill, idx) => (
+              {resumeData.skills.map((skill, idx) => (
                 <span
                   key={idx}
                   className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-sm flex items-center gap-2"
@@ -291,7 +286,7 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
                     onClick={() =>
                       setResumeData({
                         ...resumeData,
-                        skills: (resumeData.skills || []).filter((_, i) => i !== idx),
+                        skills: resumeData.skills.filter((_, i) => i !== idx),
                       })
                     }
                     className="text-red-500"
@@ -301,11 +296,11 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
                 </span>
               ))}
 
-              {/* Input */}
+              {/* INPUT */}
               <input
                 type="text"
-                className="flex-grow min-w-[150px] px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
                 placeholder="Type skill & press Enter"
+                className="flex-grow min-w-[150px] px-3 py-2 border rounded-xl"
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -313,7 +308,7 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
                     e.preventDefault();
                     setResumeData({
                       ...resumeData,
-                      skills: [...(resumeData.skills || []), skillInput.trim()],
+                      skills: [...resumeData.skills, skillInput.trim()],
                     });
                     setSkillInput("");
                     setProgress(Math.max(progress, 60));
@@ -323,154 +318,167 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
             </div>
           </section>
 
-          {/* ----------------------------------------------
-              PROJECTS + AI
-          ---------------------------------------------- */}
+          {/* ------------------------------------------------ */}
+          {/* PROJECTS + AI */}
+          {/* ------------------------------------------------ */}
           <section className="bg-white p-8 rounded-xl shadow-md">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-gray-900">Projects</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">Projects</h2>
               <button onClick={addProject} className="flex items-center gap-2 text-[#4F46E5]">
-                <Plus className="w-4 h-4" />
-                <span>Add More</span>
+                <Plus className="w-4 h-4" /> Add More
               </button>
             </div>
 
-            {(resumeData.projects || [{ title: "", description: "" }]).map((project, index) => (
+            {resumeData.projects.map((project, index) => (
               <div key={index} className="space-y-4 mb-6">
-                {/* Project Title */}
+                {/* TITLE */}
                 <div>
                   <label className="block text-sm mb-2">Project Title</label>
                   <input
                     type="text"
-                    value={project.title || ""}
+                    value={project.title}
                     onChange={(e) => {
-                      const list = [...(resumeData.projects || [])];
-                      list[index] = { ...(list[index] || {}), title: e.target.value };
-                      setResumeData({ ...resumeData, projects: list });
+                      const copy = [...resumeData.projects];
+                      copy[index].title = e.target.value;
+                      setResumeData({ ...resumeData, projects: copy });
                       setProgress(Math.max(progress, 70));
                     }}
-                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                    className="w-full px-4 py-2 border rounded-xl"
                     placeholder="E-commerce Platform"
                   />
                 </div>
 
-                {/* Description */}
+                {/* DESCRIPTION */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm">Description</label>
-
                     <button
                       onClick={() => handleAIImprovement(`project-${index}`)}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-[#4F46E5] rounded-xl"
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-xl text-[#4F46E5]"
                     >
                       <Sparkles className="w-4 h-4" />
-                      <span>Improve with AI</span>
+                      Improve with AI
                     </button>
                   </div>
 
+                  {/* AI SUGGESTION (PROJECT SPECIFIC) */}
+                  {projectSuggestions[index] && (
+                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl mb-3">
+                      <p className="text-sm text-gray-700">
+                        <span className="font-medium text-[#4F46E5]">AI Suggestion:</span>{" "}
+                        {projectSuggestions[index]}
+                      </p>
+                    </div>
+                  )}
+
                   <textarea
-                    value={project.description || ""}
+                    value={project.description}
                     onChange={(e) => {
-                      const list = [...(resumeData.projects || [])];
-                      list[index] = { ...(list[index] || {}), description: e.target.value };
-                      setResumeData({ ...resumeData, projects: list });
+                      const copy = [...resumeData.projects];
+                      copy[index].description = e.target.value;
+                      setResumeData({ ...resumeData, projects: copy });
                     }}
                     rows={3}
-                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
-                    placeholder="Built a full-stack e-commerce platform using React and Node.js..."
+                    className="w-full px-4 py-3 border rounded-xl"
+                    placeholder="Describe your project..."
                   />
                 </div>
               </div>
             ))}
           </section>
 
-          {/* ----------------------------------------------
-              SUMMARY + AI
-          ---------------------------------------------- */}
+          {/* ------------------------------------------------ */}
+          {/* SUMMARY + AI */}
+          {/* ------------------------------------------------ */}
           <section className="bg-white p-8 rounded-xl shadow-md">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-gray-900">Professional Summary</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
 
               <button
                 onClick={() => handleAIImprovement("summary")}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-[#4F46E5] rounded-xl"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-xl text-[#4F46E5]"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>Improve with AI</span>
+                <Sparkles className="w-4 h-4" /> Improve with AI
               </button>
             </div>
 
+            {/* AI SUMMARY SUGGESTION */}
+            {summarySuggestion && (
+              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl mb-4">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium text-[#4F46E5]">AI Suggestion:</span>{" "}
+                  {summarySuggestion}
+                </p>
+              </div>
+            )}
+
             <textarea
-              value={resumeData.summary || ""}
+              rows={4}
+              value={resumeData.summary}
               onChange={(e) => {
                 setResumeData({ ...resumeData, summary: e.target.value });
                 setProgress(Math.max(progress, 85));
               }}
-              rows={4}
-              className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
-              placeholder="Passionate software developer with experience in building web applications..."
+              className="w-full px-4 py-3 border rounded-xl"
+              placeholder="Write your professional summary..."
             />
           </section>
 
-          {/* ----------------------------------------------
-              CERTIFICATES
-          ---------------------------------------------- */}
+          {/* ------------------------------------------------ */}
+          {/* CERTIFICATES */}
+          {/* ------------------------------------------------ */}
           <section className="bg-white p-8 rounded-xl shadow-md">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-gray-900">Certificates</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">Certificates</h2>
               <button onClick={addCertificate} className="flex items-center gap-2 text-[#4F46E5]">
-                <Plus className="w-4 h-4" />
-                <span>Add More</span>
+                <Plus className="w-4 h-4" /> Add More
               </button>
             </div>
 
-            {(resumeData.certificates || [{ name: "", issuer: "", date: "" }]).map((cert, index) => (
+            {resumeData.certificates.map((cert, index) => (
               <div key={index} className="grid md:grid-cols-3 gap-4 mb-6">
-                {/* Name */}
                 <div>
                   <label className="block text-sm mb-2">Certificate Name</label>
                   <input
                     type="text"
-                    value={cert.name || ""}
+                    value={cert.name}
                     onChange={(e) => {
-                      const list = [...(resumeData.certificates || [])];
-                      list[index] = { ...(list[index] || {}), name: e.target.value };
-                      setResumeData({ ...resumeData, certificates: list });
+                      const copy = [...resumeData.certificates];
+                      copy[index].name = e.target.value;
+                      setResumeData({ ...resumeData, certificates: copy });
                       setProgress(100);
                     }}
-                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                    className="w-full px-4 py-2 border rounded-xl"
                     placeholder="AWS Certified Developer"
                   />
                 </div>
 
-                {/* Issuer */}
                 <div>
                   <label className="block text-sm mb-2">Issuer</label>
                   <input
                     type="text"
-                    value={cert.issuer || ""}
+                    value={cert.issuer}
                     onChange={(e) => {
-                      const list = [...(resumeData.certificates || [])];
-                      list[index] = { ...(list[index] || {}), issuer: e.target.value };
-                      setResumeData({ ...resumeData, certificates: list });
+                      const copy = [...resumeData.certificates];
+                      copy[index].issuer = e.target.value;
+                      setResumeData({ ...resumeData, certificates: copy });
                     }}
-                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                    className="w-full px-4 py-2 border rounded-xl"
                     placeholder="Amazon Web Services"
                   />
                 </div>
 
-                {/* Date */}
                 <div>
                   <label className="block text-sm mb-2">Date</label>
                   <input
                     type="text"
-                    value={cert.date || ""}
+                    value={cert.date}
                     onChange={(e) => {
-                      const list = [...(resumeData.certificates || [])];
-                      list[index] = { ...(list[index] || {}), date: e.target.value };
-                      setResumeData({ ...resumeData, certificates: list });
+                      const copy = [...resumeData.certificates];
+                      copy[index].date = e.target.value;
+                      setResumeData({ ...resumeData, certificates: copy });
                     }}
-                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#4F46E5]"
+                    className="w-full px-4 py-2 border rounded-xl"
                     placeholder="2024"
                   />
                 </div>
@@ -478,15 +486,16 @@ export function ResumeForm({ onNavigate, resumeData, setResumeData }) {
             ))}
           </section>
 
-          {/* Continue */}
-          <div className="flex justify-end pt-4">
+          {/* CONTINUE BUTTON */}
+          <div className="flex justify-end">
             <button
               onClick={handleContinue}
-              className="bg-[#4F46E5] text-white px-8 py-3 rounded-xl hover:scale-105 transition-transform"
+              className="bg-[#4F46E5] text-white px-8 py-3 rounded-xl hover:scale-105 transition-all shadow-lg"
             >
               Continue to Templates
             </button>
           </div>
+
         </motion.div>
       </div>
     </div>
