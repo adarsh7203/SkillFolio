@@ -1,66 +1,68 @@
 # backend/utils/ai_helper.py
 
 import os
+from deepseek import DeepSeek
 from dotenv import load_dotenv
-import google.generativeai as genai
 
 load_dotenv()
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 if not API_KEY:
-    raise RuntimeError("GEMINI_API_KEY missing in .env")
+    raise RuntimeError("DEEPSEEK_API_KEY missing in environment variables.")
 
-genai.configure(api_key=API_KEY)
+# Initialize DeepSeek client
+client = DeepSeek(api_key=API_KEY)
 
-# Stable Model → Works for text tasks
-MODEL = "models/gemini-2.0-flash-exp"
+MODEL = "deepseek-chat"   # official DeepSeek chat model
 
-model = genai.GenerativeModel(MODEL)
+
+# --------------------------
+# Generic chat wrapper
+# --------------------------
 
 async def call_chat(prompt: str, max_tokens=300):
     try:
-        response = model.generate_content(
-            [{
-                "role": "user",
-                "parts": [{"text": prompt}]
-            }],
-            generation_config={
-                "max_output_tokens": max_tokens,
-                "temperature": 0.7
-            }
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=0.7
         )
 
-        # --- SAFE PARSE LOGIC (never fails) ---
-        # 1. Try quick accessor:
-        if hasattr(response, "text") and response.text:
-            return response.text.strip()
-
-        # 2. Try manual extraction from parts:
-        if response.candidates:
-            c = response.candidates[0]
-            if c.content and c.content.parts:
-                text_parts = [
-                    p.text for p in c.content.parts if hasattr(p, "text")
-                ]
-                full = "".join(text_parts).strip()
-                if full:
-                    return full
-
-        return "AI Error: Empty response from Gemini model."
+        # Extract text safely
+        return response.choices[0].message["content"].strip()
 
     except Exception as e:
         return f"AI Error: {str(e)}"
 
 
+# --------------------------
+# Improve Summary
+# --------------------------
+
 async def improve_summary(summary_text: str):
-    prompt = f"Improve this resume summary professionally:\n\n{summary_text}"
+    prompt = (
+        "Improve this resume summary professionally. "
+        "Keep it concise, ATS-friendly, and impact-driven:\n\n"
+        f"{summary_text}"
+    )
     return await call_chat(prompt)
 
 
+# --------------------------
+# Suggest Skills
+# --------------------------
+
 async def suggest_skills(skills_list):
     skills_str = ", ".join(skills_list)
-    prompt = f"Given these skills: {skills_str}\nSuggest 8 additional technical skills."
+
+    prompt = (
+        f"Given these skills ({skills_str}), suggest exactly 8 additional "
+        "modern technical skills relevant for a resume. "
+        "Return only a comma-separated list."
+    )
+
     raw = await call_chat(prompt)
 
     if raw.startswith("AI Error"):
@@ -69,6 +71,15 @@ async def suggest_skills(skills_list):
     return [x.strip() for x in raw.replace("\n", ",").split(",") if x.strip()][:8]
 
 
+# --------------------------
+# Improve Project Description
+# --------------------------
+
 async def improve_project(project_desc):
-    prompt = f"Rewrite this project description in 1–2 concise resume bullet points:\n\n{project_desc}"
+    prompt = (
+        "Rewrite the following project description into 1–2 bullet points. "
+        "Make it concise, action-oriented, and resume-ready:\n\n"
+        f"{project_desc}"
+    )
+
     return await call_chat(prompt)
