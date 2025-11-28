@@ -11,7 +11,7 @@ API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if not API_KEY:
     raise RuntimeError("DEEPSEEK_API_KEY missing in environment variables.")
 
-# Create client with DeepSeek API endpoint
+# DeepSeek client
 client = OpenAI(
     api_key=API_KEY,
     base_url="https://api.deepseek.com/v1"
@@ -29,7 +29,8 @@ async def call_chat(prompt: str, max_tokens=300):
             temperature=0.7
         )
 
-        return response.choices[0].message["content"].strip()
+        # FIX: Correct message extraction
+        return response.choices[0].message.content.strip()
 
     except Exception as e:
         return f"AI Error: {str(e)}"
@@ -49,7 +50,7 @@ async def suggest_skills(skills_list):
 
     prompt = (
         f"Given these skills ({skills_str}), suggest exactly 8 additional "
-        "modern technical skills relevant to a resume. "
+        "modern technical skills relevant for a resume. "
         "Return only a comma-separated list."
     )
 
