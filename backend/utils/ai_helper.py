@@ -38,8 +38,8 @@ async def call_chat(prompt: str, max_tokens=300):
 
 async def improve_summary(summary_text: str):
     prompt = (
-        "Improve this resume summary professionally. "
-        "Keep it concise, ATS-friendly, and impact-driven:\n\n"
+        "Rewrite the following text into a single, concise, ATS-friendly professional resume summary. "
+        "Keep it under 3 lines. No headings, no templates, no examples:\n\n"
         f"{summary_text}"
     )
     return await call_chat(prompt)
@@ -64,9 +64,9 @@ async def suggest_skills(skills_list):
 
 async def improve_project(project_desc):
     prompt = (
-        "Rewrite this project description into 1–2 bullet points. "
-        "Make it concise, action-oriented, and resume-ready:\n\n"
+        "Rewrite this project description into exactly 1–2 bullet points. "
+        "Only return the improved bullet points:\n\n"
         f"{project_desc}"
     )
-
     return await call_chat(prompt)
+
