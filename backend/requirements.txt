@@ -4,5 +4,4 @@ jinja2
 pdfkit
 requests
 python-dotenv
-google-generativeai
-deepseek
+openai

@@ -1,7 +1,7 @@
 # backend/utils/ai_helper.py
 
 import os
-from deepseek import DeepSeekAPI
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,22 +11,25 @@ API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if not API_KEY:
     raise RuntimeError("DEEPSEEK_API_KEY missing in environment variables.")
 
-# correct client initialization
-client = DeepSeekAPI(api_key=API_KEY)
+# Create client with DeepSeek API endpoint
+client = OpenAI(
+    api_key=API_KEY,
+    base_url="https://api.deepseek.com/v1"
+)
 
 MODEL = "deepseek-chat"
 
 
 async def call_chat(prompt: str, max_tokens=300):
     try:
-        response = client.completions.create(
+        response = client.chat.completions.create(
             model=MODEL,
-            prompt=prompt,
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=max_tokens,
             temperature=0.7
         )
 
-        return response.choices[0].text.strip()
+        return response.choices[0].message["content"].strip()
 
     except Exception as e:
         return f"AI Error: {str(e)}"
@@ -55,7 +58,7 @@ async def suggest_skills(skills_list):
     if raw.startswith("AI Error"):
         return []
 
-    return [s.strip() for s in raw.replace("\n", ",").split(",") if s.strip()][:8]
+    return [x.strip() for x in raw.replace("\n", ",").split(",") if x.strip()][:8]
 
 
 async def improve_project(project_desc):
