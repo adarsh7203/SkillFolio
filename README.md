@@ -9,7 +9,7 @@ Create professional resumes in minutes with smart AI suggestions, multiple templ
 
 Improve your summary, skills, and projects using AI suggestions.
 
-Uses Google Gemini API to enhance content.
+Uses DEEPSEEK API to enhance content.
 
 🔹 Multiple Resume Templates
 
@@ -62,7 +62,7 @@ pdfkit + wkhtmltopdf
 
 Jinja2
 
-Google Gemini API
+DEEPSEEK API
 
 🚀 Deployment
 ✅ Frontend (Netlify)
@@ -92,7 +92,7 @@ Start Command
 uvicorn backend.main:app --host 0.0.0.0 --port $PORT
 
 Environment Variables
-GEMINI_API_KEY = your_key_here
+DEEPSEEK_API_KEY = your_key_here
 
 📦 Installation & Running Locally
 🔹 Clone Repository
