@@ -1,7 +1,7 @@
 # backend/utils/ai_helper.py
 
 import os
-from deepseek import DeepSeek
+from deepseek import DeepSeekAPI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,16 +11,15 @@ API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if not API_KEY:
     raise RuntimeError("DEEPSEEK_API_KEY missing in environment variables.")
 
-# Initialize DeepSeek client
-client = DeepSeek(api_key=API_KEY)
+# Initialize DeepSeek client correctly
+client = DeepSeekAPI(api_key=API_KEY)
 
-MODEL = "deepseek-chat"   # official DeepSeek chat model
+MODEL = "deepseek-chat"
 
 
 # --------------------------
-# Generic chat wrapper
+# Generic Chat Wrapper
 # --------------------------
-
 async def call_chat(prompt: str, max_tokens=300):
     try:
         response = client.chat.completions.create(
@@ -30,7 +29,6 @@ async def call_chat(prompt: str, max_tokens=300):
             temperature=0.7
         )
 
-        # Extract text safely
         return response.choices[0].message["content"].strip()
 
     except Exception as e:
@@ -40,7 +38,6 @@ async def call_chat(prompt: str, max_tokens=300):
 # --------------------------
 # Improve Summary
 # --------------------------
-
 async def improve_summary(summary_text: str):
     prompt = (
         "Improve this resume summary professionally. "
@@ -53,7 +50,6 @@ async def improve_summary(summary_text: str):
 # --------------------------
 # Suggest Skills
 # --------------------------
-
 async def suggest_skills(skills_list):
     skills_str = ", ".join(skills_list)
 
@@ -68,13 +64,12 @@ async def suggest_skills(skills_list):
     if raw.startswith("AI Error"):
         return []
 
-    return [x.strip() for x in raw.replace("\n", ",").split(",") if x.strip()][:8]
+    return [s.strip() for s in raw.replace("\n", ",").split(",") if s.strip()][:8]
 
 
 # --------------------------
 # Improve Project Description
 # --------------------------
-
 async def improve_project(project_desc):
     prompt = (
         "Rewrite the following project description into 1–2 bullet points. "
