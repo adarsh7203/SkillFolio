@@ -173,7 +173,7 @@ For major changes, open an issue first.
 
 📄 License
 
-MIT License © 2025 Adarsh Gupta Abhinav Pandey Aradhya Gupta
+MIT License © 2025 Adarsh Gupta
 
 ⭐ Show Support
 
